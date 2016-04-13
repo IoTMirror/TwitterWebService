@@ -1,10 +1,12 @@
-import os
-import tweepy
+import flask
 import json
-import urllib.parse
+import os
 import psycopg2
 import psycopg2.extras
-import flask
+import tweepy
+import requests
+import urllib.parse
+
 
 app = flask.Flask(__name__)
 
@@ -88,6 +90,7 @@ def tweets(userID):
   auth.set_access_token(tokens["access_token"], tokens["access_token_secret"])
   api = tweepy.API(auth)
   tweets = []
+  hashtags = []
   try:
     for status in tweepy.Cursor(api.home_timeline).items(20):
       tweet = Tweet()
@@ -99,8 +102,13 @@ def tweets(userID):
       tweet.user.id=status.user.id
       tweet.user.screen_name=status.user.screen_name
       tweets.append(tweet)
+      hashtags.extend([hashtag['text'] for hashtag in status.entities['hashtags']])
   except tweepy.TweepError as e:
     return ('',e.response.status_code)
+  advservice_url = os.environ.get('ADVSERVICE_URL')
+  if advservice_url is not None:
+    for hashtag in hashtags:
+      requests.put(advservice_url+"/users/"+userID+"/tweeter/hashtags/"+hashtag)
   return json.dumps(tweets,cls=ObjectJSONEncoder)
 
 if __name__ == '__main__':
