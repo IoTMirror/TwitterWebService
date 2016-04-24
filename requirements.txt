@@ -1,5 +1,5 @@
 Flask==0.10.1
--e git+https://github.com/IoTMirror/ServicesCommons.git/@cbf75953612106848fc5aa967f1b549eb372025a#egg=iotmirror_commons
+-e git+https://github.com/IoTMirror/ServicesCommons.git/@0476a398f4fd58c724ea1a2aea66649b7e46b39b#egg=iotmirror_commons
 itsdangerous==0.24
 Jinja2==2.8
 MarkupSafe==0.23
