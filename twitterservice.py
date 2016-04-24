@@ -6,6 +6,7 @@ import psycopg2.extras
 import tweepy
 import requests
 import urllib.parse
+from iotmirror_commons.oauth_tokens import OAuthTokensDatabase
 
 
 app = flask.Flask(__name__)
@@ -18,35 +19,6 @@ class TweeterUser:
 
 class Tweet:
   pass
-
-class TokensDatabase:
-  def __init__(self, db_url, table_prefix=""):
-    self.url = urllib.parse.urlparse(db_url)
-    self.table_prefix=table_prefix
-  
-  def getUserTokens(self, userID):
-    url = self.url
-    con = psycopg2.connect(database=self.url.path[1:], user=self.url.username,
-			  password=self.url.password,host=self.url.hostname,
-			  port=self.url.port
-	  )
-    cur = con.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    cur.execute("SELECT access_token, access_token_secret FROM "+self.table_prefix+"access_tokens WHERE user_id=(%s);",[userID])
-    row = cur.fetchone()
-    cur.close()
-    con.close()
-    return row
-  
-  def deleteUserTokens(self, userID):
-    con = psycopg2.connect(database=self.url.path[1:], user=self.url.username,
-			  password=self.url.password,host=self.url.hostname,
-			  port=self.url.port
-	  )
-    cur = con.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    cur.execute("DELETE FROM "+self.table_prefix+"access_tokens WHERE user_id=(%s);",[self.table_prefix,userID])
-    con.commit()
-    cur.close()
-    con.close()
   
 class ObjectJSONEncoder(json.JSONEncoder):
   def default(self,obj):
@@ -59,7 +31,7 @@ class ObjectJSONEncoder(json.JSONEncoder):
 @app.route('/users/<userID>', methods=['GET'])
 def userInfo(userID):
   auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-  tokens = TokensDatabase(os.environ['DATABASE_URL'],"twitter_").getUserTokens(userID)
+  tokens = OAuthTokensDatabase(os.environ['DATABASE_URL'],"twitter_").getUserAccessTokens(userID)
   if(tokens is None):
     return ('',404)
   try:
@@ -75,16 +47,16 @@ def userInfo(userID):
   return json.dumps(user,cls=ObjectJSONEncoder)
 
 #deletes access tokens related to the user specified by userID
-@app.route('/users/<userID>', methods=['DELETE'])
-def deleteUserData(userID):
-  TokensDatabase(os.environ['DATABASE_URL']).deleteUserTokens(userID)
+@app.route('/users/<userID>/access_tokens', methods=['DELETE'])
+def deleteUserAccessTokens(userID):
+  OAuthTokensDatabase(os.environ['DATABASE_URL'],"twitter_").deleteUserAccessTokens(userID)
   return ('',204)
 
 #returns tweets form user's (specified by userID) home_timeline
 @app.route('/users/<userID>/home_timeline')
 def tweets(userID):
   auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-  tokens = TokensDatabase(os.environ['DATABASE_URL'],"twitter_").getUserTokens(userID)
+  tokens = OAuthTokensDatabase(os.environ['DATABASE_URL'],"twitter_").getUserAccessTokens(userID)
   if(tokens is None):
     return ('',404)
   auth.set_access_token(tokens["access_token"], tokens["access_token_secret"])
@@ -108,7 +80,10 @@ def tweets(userID):
   advservice_url = os.environ.get('ADVSERVICE_URL')
   if advservice_url is not None:
     for hashtag in hashtags:
-      requests.put(advservice_url+"/users/"+userID+"/tweeter/hashtags/"+hashtag)
+      try:
+        requests.put(advservice_url+"/users/"+userID+"/tweeter/hashtags/"+hashtag)
+      except requests.exceptions.RequestException:
+        pass
   return json.dumps(tweets,cls=ObjectJSONEncoder)
 
 if __name__ == '__main__':
