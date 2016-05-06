@@ -98,6 +98,7 @@ def userInfo(userID):
 #returns tweets form user's (specified by userID) home_timeline
 @app.route('/users/<userID>/home_timeline')
 def tweets(userID):
+  max_tweets = 20
   auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
   tokens = atdb.getUserToken(userID)
   if(tokens is None):
@@ -107,7 +108,7 @@ def tweets(userID):
   tweets = []
   hashtags = []
   try:
-    for status in tweepy.Cursor(api.home_timeline).items(20):
+    for status in tweepy.Cursor(api.home_timeline).items(max_tweets):
       tweet = {
                 "id" : status.id,
                 "text" : status.text,
@@ -126,7 +127,7 @@ def tweets(userID):
   if advservice_url is not None:
     for hashtag in hashtags:
       try:
-        requests.put(advservice_url+"/users/"+userID+"/tweeter/hashtags/"+hashtag)
+        requests.put(advservice_url+"/users/"+userID+"/twitter/hashtags/"+hashtag)
       except requests.exceptions.RequestException:
         pass
   return json.dumps(tweets,cls=ObjectJSONEncoder)
