@@ -38,13 +38,13 @@ def signinComplete():
   oauth_verifier = flask.request.args.get('oauth_verifier',None)
   denied = flask.request.args.get('denied',None)
   if (oauth_request_token is None or oauth_verifier is None) and denied is None:
-    return ("",400)
+    return ("<script>close();</script>",400)
   if (denied is not None):
     rtdb.deleteToken(denied)
-    return ""
+    return "<script>close();</script>"
   twitter_request_token = rtdb.getToken(oauth_request_token)
   if(twitter_request_token is None):
-    return ("",404)
+    return ("<script>close();</script>",404)
   rtdb.deleteToken(oauth_request_token)
   auth = tweepy.OAuthHandler(consumer_key,consumer_secret)
   auth.request_token={"oauth_token":twitter_request_token["request_token"],
@@ -53,10 +53,10 @@ def signinComplete():
     auth.get_access_token(oauth_verifier)
     atdb.insertUserToken(twitter_request_token["user_id"],auth.access_token,auth.access_token_secret)
   except tweepy.TweepError:
-    return ("",401)
+    return ("<script>close();</script>",401)
   except psycopg2.IntegrityError:
     atdb.updateUserToken(twitter_request_token["user_id"],auth.access_token,auth.access_token_secret)
-  return ""
+  return "<script>close();</script>"
 
 #deletes request tokens related to the user specified by userID
 @app.route('/users/<userID>/request_tokens', methods=['DELETE'])
