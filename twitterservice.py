@@ -9,6 +9,8 @@ import urllib.parse
 from iotmirror_commons.oauth_tokens import AccessTokensDatabase
 from iotmirror_commons.oauth_tokens import RequestTokensDatabase
 from iotmirror_commons.json_commons import ObjectJSONEncoder
+from iotmirror_commons.flask_security import server_secret_key_required
+from iotmirror_commons.flask_security import authorizeServerBasicEnvKey
 
 
 app = flask.Flask(__name__)
@@ -60,23 +62,27 @@ def signinComplete():
 
 #deletes request tokens related to the user specified by userID
 @app.route('/users/<userID>/request_tokens', methods=['DELETE'])
+@server_secret_key_required(authorizeServerBasicEnvKey)
 def deleteUserRequestTokens(userID):
   rtdb.deleteUserTokens(userID)
   return ('',204)
 
 #deletes access tokens related to the user specified by userID
 @app.route('/users/<userID>/access_tokens', methods=['DELETE'])
+@server_secret_key_required(authorizeServerBasicEnvKey)
 def deleteUserAccessTokens(userID):
   atdb.deleteUserTokens(userID)
   return ('',204)
 
 #deletes access tokens related to the user specified by userID
 @app.route('/signout/<userID>', methods=['DELETE'])
+@server_secret_key_required(authorizeServerBasicEnvKey)
 def signout(userID):
   return deleteUserAccessTokens(userID)
 
 #returns info about user specified by userID
 @app.route('/users/<userID>', methods=['GET'])
+@server_secret_key_required(authorizeServerBasicEnvKey)
 def userInfo(userID):
   auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
   tokens = atdb.getUserToken(userID)
@@ -97,6 +103,7 @@ def userInfo(userID):
 
 #returns tweets form user's (specified by userID) home_timeline
 @app.route('/users/<userID>/home_timeline')
+@server_secret_key_required(authorizeServerBasicEnvKey)
 def tweets(userID):
   max_tweets = 20
   auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
