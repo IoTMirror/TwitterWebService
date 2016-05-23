@@ -134,7 +134,7 @@ def tweets(userID):
   if advservice_url is not None:
     for hashtag in hashtags:
       try:
-        requests.put(advservice_url+"/users/"+userID+"/twitter/hashtags/"+hashtag)
+        requests.put(advservice_url+"/users/"+userID+"/twitter/hashtags/"+hashtag, headers={"Authorization": "Basic "+os.environ.get("SERVERS_SECRET_KEY","")})
       except requests.exceptions.RequestException:
         pass
   return json.dumps(tweets,cls=ObjectJSONEncoder)
